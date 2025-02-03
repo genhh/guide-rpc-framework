@@ -1,32 +1,10 @@
 # guide-rpc-framework
+在此项目和dubbo的基础上进行优化
 
-> [该 RPC 框架配套教程已经更新在我的星球，点击此链接了解详情。](https://javaguide.cn/zhuanlan/handwritten-rpc-framework.html)
-
-<div align="center">
-  <p> 中文| <a href="./README-EN.md">English</a>
-  </p>
-  <p>
-    <a href="https://github.com/Snailclimb/guide-rpc-framework">Github</a> | <a href="https://gitee.com/SnailClimb/guide-rpc-framework ">Gitee</a>
-  </p>
-</div>
-
-## 前言
-
-虽说 RPC 的原理实际不难，但是，自己在实现的过程中自己也遇到了很多问题。[guide-rpc-framework](https://github.com/Snailclimb/guide-rpc-framework) 目前只实现了 RPC 框架最基本的功能，一些可优化点都在下面提到了，有兴趣的小伙伴可以自行完善。
-
-通过这个简易的轮子，你可以学到 RPC 的底层原理和原理以及各种 Java 编码实践的运用。
-
-你甚至可以把 [guide-rpc-framework](https://github.com/Snailclimb/guide-rpc-framework) 当做你的毕设/项目经验的选择，这是非常不错！对比其他求职者的项目经验都是各种系统，造轮子肯定是更加能赢得面试官的青睐。
-
-如果你要将 [guide-rpc-framework](https://github.com/Snailclimb/guide-rpc-framework) 当做你的毕设/项目经验的话，我希望你一定要搞懂，而不是直接复制粘贴我的思想。你可以 fork 我的项目，然后进行优化。如果你觉得的优化是有价值的话，你可以提交 PR 给我，我会尽快处理。
 
 ## 介绍
 
- [guide-rpc-framework](https://github.com/Snailclimb/guide-rpc-framework) 是一款基于 Netty+Kyro+Zookeeper 实现的 RPC 框架。代码注释详细，结构清晰，并且集成了 Check Style 规范代码结构，非常适合阅读和学习。
-
-由于 Guide哥自身精力和能力有限，如果大家觉得有需要改进和完善的地方的话，欢迎 fork 本项目，然后 clone 到本地，在本地修改后提交 PR 给我，我会在第一时间 Review 你的代码。
-
-**我们先从一个基本的 RPC 框架设计思路说起！**
+[guide-rpc-framework](https://github.com/Snailclimb/guide-rpc-framework) 是一款基于 Netty+Kyro+Zookeeper 实现的 RPC 框架。
 
 ### 一个基本的 RPC 框架设计思路
 
@@ -72,51 +50,21 @@
 - [x] **集成 Spring 通过注解注册服务**
 - [x] **集成 Spring 通过注解进行服务消费** 。参考： [PR#10](https://github.com/Snailclimb/guide-rpc-framework/pull/10)
 - [x] **增加服务版本号** ：建议使用两位数字版本，如：1.0，通常在接口不兼容时版本号才需要升级。为什么要增加服务版本号？为后续不兼容升级提供可能，比如服务接口增加方法，或服务模型增加字段，可向后兼容，删除方法或删除字段，将不兼容，枚举类型新增字段也不兼容，需通过变更版本号升级。
-- [x] **对 SPI 机制的运用** 
-- [ ] **增加可配置比如序列化方式、注册中心的实现方式,避免硬编码** ：通过 API 配置，后续集成 Spring 的话建议使用配置文件的方式进行配置
+- [x] **对 SPI 机制的运用**
 - [x] **客户端与服务端通信协议（数据包结构）重新设计** ，可以将原有的 `RpcRequest`和 `RpcRequest` 对象作为消息体，然后增加如下字段（可以参考：《Netty 入门实战小册》和 Dubbo 框架对这块的设计）：
   - **魔数** ： 通常是 4 个字节。这个魔数主要是为了筛选来到服务端的数据包，有了这个魔数之后，服务端首先取出前面四个字节进行比对，能够在第一时间识别出这个数据包并非是遵循自定义协议的，也就是无效数据包，为了安全考虑可以直接关闭连接以节省资源。
   - **序列化器编号** ：标识序列化的方式，比如是使用 Java 自带的序列化，还是 json，kyro 等序列化方式。
   - **消息体长度** ： 运行时计算出来。
   - ......
-- [ ] **编写测试为重构代码提供信心**
-- [ ] **服务监控中心（类似dubbo admin）**
 - [x] **设置 gzip 压缩**
-
-### 项目模块概览
-
-![](./images/RPC框架各个模块介绍.png)
-
+- [ ] (new add)**服务监控中心（类似dubbo admin）**
+- [ ] (new add)**增加可配置比如序列化方式、注册中心的实现方式,避免硬编码** ：通过 API 配置，后续集成 Spring 的话建议使用配置文件的方式进行配置
+- [ ] (new add) 结果缓存
 ## 运行项目
 
 ### 导入项目
 
 fork 项目到自己的仓库，然后克隆项目到自己的本地：`git clone git@github.com:username/guide-rpc-framework.git`，使用 IDEA 打开，等待项目初始化完成。
-
-### 初始化 git hooks
-
-**这一步主要是为了在 commit 代码之前，跑 Check Style，保证代码格式没问题，如果有问题的话就不能提交。**
-
-> 以下演示的是 Mac/Linux 对应的操作，Window 用户需要手动将 `config/git-hooks` 目录下的`pre-commit` 文件拷贝到 项目下的 `.git/hooks/` 目录。
-
-执行下面这些命令：
-
-```shell
-➜  guide-rpc-framework git:(master) ✗ chmod +x ./init.sh
-➜  guide-rpc-framework git:(master) ✗ ./init.sh
-```
-
-`init.sh` 这个脚本的主要作用是将 git commit 钩子拷贝到项目下的 `.git/hooks/` 目录，这样你每次 commit 的时候就会执行了。
-
-### CheckStyle 插件下载和配置
-
-`IntelliJ IDEA-> Preferences->Plugins->搜索下载 CheckStyle 插件`，然后按照如下方式进行配置。
-
-![CheckStyle 插件下载和配置](./images/setting-check-style.png)
-
-配置完成之后，按照如下方式使用这个插件！
-
-![插件使用方式](./images/run-check-style.png)
 
 ### 下载运行 zookeeper
 
@@ -132,117 +80,11 @@ docker pull zookeeper:3.5.8
 
 ```shell
 docker run -d --name zookeeper -p 2181:2181 zookeeper:3.5.8
+#然后跑起来example-client/server中的xxxMain文件
 ```
 
-## 使用
-
-### 服务提供端
-
-实现接口：
-
-```java
-@Slf4j
-@RpcService(group = "test1", version = "version1")
-public class HelloServiceImpl implements HelloService {
-    static {
-        System.out.println("HelloServiceImpl被创建");
-    }
-
-    @Override
-    public String hello(Hello hello) {
-        log.info("HelloServiceImpl收到: {}.", hello.getMessage());
-        String result = "Hello description is " + hello.getDescription();
-        log.info("HelloServiceImpl返回: {}.", result);
-        return result;
-    }
-}
-	
-@Slf4j
-public class HelloServiceImpl2 implements HelloService {
-
-    static {
-        System.out.println("HelloServiceImpl2被创建");
-    }
-
-    @Override
-    public String hello(Hello hello) {
-        log.info("HelloServiceImpl2收到: {}.", hello.getMessage());
-        String result = "Hello description is " + hello.getDescription();
-        log.info("HelloServiceImpl2返回: {}.", result);
-        return result;
-    }
-}
-```
-
-发布服务(使用 Netty 进行传输)：
-
-```java
-/**
- * Server: Automatic registration service via @RpcService annotation
- *
- * @author shuang.kou
- * @createTime 2020年05月10日 07:25:00
- */
-@RpcScan(basePackage = {"github.javaguide.serviceimpl"})
-public class NettyServerMain {
-    public static void main(String[] args) {
-        // Register service via annotation
-        new AnnotationConfigApplicationContext(NettyServerMain.class);
-        NettyServer nettyServer = new NettyServer();
-        // Register service manually
-        HelloService helloService2 = new HelloServiceImpl2();
-        RpcServiceProperties rpcServiceConfig = RpcServiceProperties.builder()
-                .group("test2").version("version2").build();
-        nettyServer.registerService(helloService2, rpcServiceConfig);
-        nettyServer.start();
-    }
-}
-```
-
-### 服务消费端
-
-```java
-@Component
-public class HelloController {
-
-    @RpcReference(version = "version1", group = "test1")
-    private HelloService helloService;
-
-    public void test() throws InterruptedException {
-        String hello = this.helloService.hello(new Hello("111", "222"));
-        //如需使用 assert 断言，需要在 VM options 添加参数：-ea
-        assert "Hello description is 222".equals(hello);
-        Thread.sleep(12000);
-        for (int i = 0; i < 10; i++) {
-            System.out.println(helloService.hello(new Hello("111", "222")));
-        }
-    }
-}
-```
-
-```java
-ClientTransport rpcRequestTransport = new SocketRpcClient();
-RpcServiceProperties rpcServiceConfig = RpcServiceProperties.builder()
-        .group("test2").version("version2").build();
-RpcClientProxy rpcClientProxy = new RpcClientProxy(rpcRequestTransport, rpcServiceConfig);
-HelloService helloService = rpcClientProxy.getProxy(HelloService.class);
-String hello = helloService.hello(new Hello("111", "222"));
-System.out.println(hello);
-```
 
 ## 相关问题
-
-### 为什么要造这个轮子？Dubbo 不香么？
-
-写这个 RPC 框架主要是为了通过造轮子的方式来学习，检验自己对于自己所掌握的知识的运用。
-
-实现一个简单的 RPC 框架实际是比较容易的，不过，相比于手写 AOP 和 IoC 还是要难一点点，前提是你搞懂了 RPC 的基本原理。
-
-我之前从理论层面在我的知识星球分享过如何实现一个 RPC。不过理论层面的东西只是支撑，你看懂了理论可能只能糊弄住面试官。咱程序员这一行还是最需要动手能力，即使你是架构师级别的人物。当你动手去实践某个东西，将理论付诸实践的时候，你就会发现有很多坑等着你。
-
-大家在实际项目上还是要尽量少造轮子，有优秀的框架之后尽量就去用，Dubbo 在各个方面做的都比较好和完善。
-
-### 如果我要自己写的话，需要提前了解哪些知识
 
 **Java** ：
 
@@ -265,9 +107,18 @@ System.out.println(hello);
 2. 数据结构；
 3. 如何使用 Netflix 公司开源的 zookeeper 客户端框架 Curator 进行增删改查；
 
-## 教程
 
-Guide 的星球正在更新《从零开始手把手教你实现一个简单的 RPC 框架》。扫描下方二维码关注“**JavaGuide**”后回复 “**星球**”即可。
+## 相关文章
+[RPC框架](https://blog.csdn.net/xsjzn/category_11750867.html)
 
-![我的公众号](https://my-blog-to-use.oss-cn-beijing.aliyuncs.com/2019-6/167598cd2e17b8ec.png)
+[谈谈JDK的SPI机制](https://zhuanlan.zhihu.com/p/266553920)
 
+[源码分析kryo对象序列化实现原理](https://cloud.tencent.com/developer/article/1443590)
+
+[Protocol Buffer原理解密](https://juejin.cn/post/6844903997292150791)
+
+[将近2万字的Dubbo原理解析，彻底搞懂dubbo](https://developer.aliyun.com/article/808571)
+
+[如何实现一个简单的RPC](https://zhuanlan.zhihu.com/p/36528189)
+
+[guide-rpc-framework 流程梳理](https://iter01.com/6467998.html)
