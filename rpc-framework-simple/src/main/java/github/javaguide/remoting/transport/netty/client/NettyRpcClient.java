@@ -51,6 +51,8 @@ public final class NettyRpcClient implements RpcRequestTransport {
     private final EventLoopGroup eventLoopGroup;
     private static final SerializationTypeEnum SERIALIZATION_TYPE =
             SerializationTypeEnum.valueOf(RpcCodeConfig.getProperty("serialization.type").toUpperCase());
+    private static final ServiceDiscoveryEnum SERVICE_DISCOVERY_TYPE =
+            ServiceDiscoveryEnum.valueOf(RpcCodeConfig.getProperty("sdiscovery.type").toUpperCase());
 
 
     public NettyRpcClient() {
@@ -74,7 +76,7 @@ public final class NettyRpcClient implements RpcRequestTransport {
                         p.addLast(new NettyRpcClientHandler());
                     }
                 });
-        this.serviceDiscovery = ExtensionLoader.getExtensionLoader(ServiceDiscovery.class).getExtension(ServiceDiscoveryEnum.ZK.getName());
+        this.serviceDiscovery = ExtensionLoader.getExtensionLoader(ServiceDiscovery.class).getExtension(SERVICE_DISCOVERY_TYPE.getName());
         this.unprocessedRequests = SingletonFactory.getInstance(UnprocessedRequests.class);
         this.channelProvider = SingletonFactory.getInstance(ChannelProvider.class);
 
