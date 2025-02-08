@@ -84,7 +84,7 @@ docker run -d --name zookeeper -p 2181:2181 zookeeper:3.5.8
 ```
 
 
-## 相关问题
+## 相关基础
 
 **Java** ：
 
@@ -106,6 +106,102 @@ docker run -d --name zookeeper -p 2181:2181 zookeeper:3.5.8
 1. 基本概念；
 2. 数据结构；
 3. 如何使用 Netflix 公司开源的 zookeeper 客户端框架 Curator 进行增删改查；
+
+## 调用流程
+```
+NettyClientMain
+    @RpcScan
+        @Import
+            (I)ImportBeanDefinitionRegistrar
+                CustomScannerRegistrar.registerBeanDefinitions()
+                    (E)ClassPathBeanDefinitionScanner
+                        CustomScanner 
+    HelloController.test()
+        @RpcReference
+            (I)BeanPostProcessor
+                SpringBeanPostProcessor.postProcessAfterInitialization()
+                    RpcServiceConfig.builder().group().version().build();
+                    (I)InvocationHandler
+                        RpcClientProxy.**getProxy**()
+                            RpcClientProxy.invoke()
+                                RpcRequest
+                                RpcResponse<>
+                                CompletableFuture<>
+                                (I)RpcRequestTransport
+                                    NettyRpcClient.sendRpcRequest()
+                                    this.NettyRpcClient()
+                                        NioEventLoopGroup
+                                        bootstrap.group(eventLoopGroup).channel().handler().option().handler(
+                                            ChannelPipeline
+                                            IdleStateHandler
+                                            (E)MessageToByteEncoder
+                                                **RpcMessageEncoder**
+                                                this.encode()
+                                                    (I)Serializer
+                                                        HessianSerializer
+                                            (E)LengthFieldBasedFrameDecoder
+                                                **RpcMessageDecoder**
+                                            (E)ChannelInboundHandlerAdapter
+                                                NettyRpcClientHandler
+                                        )
+                                    this.**sendRpcRequest**()
+                                        CompletableFuture
+                                        (I)ServiceDiscovery
+                                            ZkServiceDiscoveryImpl.lookupService()
+                                                CuratorFramework
+                                                @SPI
+                                                    **ExtensionLoader**.getExtensionLoader().getExtension()
+                                                (I)LoadBalance
+                                                    (E)AbstractLoadBalance
+                                                        ConsistentHashLoadBalance.selectServiceAddress()
+                                                            ConsistentHashLoadBalance.doSelect()
+                                                        RandomLoadBalance
+                                        this.getchannel()
+                                            channelProvider.get()
+                                            NettyRpcClient.doConnect()
+                                                Bootstrap.connect().addListener()
+                                        unprocessedRequests.put()
+                                        RpcMessage
+                                            SerializationTypeEnum.HESSIAN.getCode()
+                                            CompressTypeEnum.GZIP.getCode()
+                                            RpcConstants
+                                        channel.writeAndFlush().addListener() <---> **message**
+                                RpcClientProxy.check()
+                                    RpcException
+                                    RpcErrorMessageEnum      
+        (I)helloService.hello()
+            HelloServiceImpl.hello()
+
+NettyServerMain
+    @RpcScan
+        @RpcService
+            (I)BeanPostProcessor
+                SpringBeanPostProcessor.postProcessBeforeInitialization()
+                    serviceProvider.publishService(rpcServiceConfig)
+        HelloServiceImpl
+    NettyRpcServer
+        (I)ServiceProvider
+            ZkServiceProviderImpl
+    // Register service manually
+    helloServiceImpl2
+        serviceProvider.publishService(rpcServiceConfig)
+    
+    nettyRpcServer.start()
+        CustomShutdownHook.getCustomShutdownHook().clearAll()
+            CuratorUtils.clearRegistry()
+            NioEventLoopGroup
+            ServerBootstrap.group().channel().childOption().handler().childHandler(
+                ChannelPipeline
+                IdleStateHandler
+                (E)MessageToByteEncoder
+                    **RpcMessageEncoder**
+                (E)LengthFieldBasedFrameDecoder
+                    **RpcMessageDecoder**
+                (E)ChannelInboundHandlerAdapter
+                    NettyRpcServerHandler()
+            )
+            
+```
 
 
 ## 相关文章

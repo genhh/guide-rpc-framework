@@ -17,7 +17,101 @@
 使得可以@rpcscan扫描rpc系列包自动注册，
 @rpcService/@rpcReference标注对应使用rpc的实现类和接口，
 
+```
+//调用流程
 
+NettyClientMain
+    @RpcScan
+        @Import
+            (I)ImportBeanDefinitionRegistrar
+                CustomScannerRegistrar.registerBeanDefinitions()
+                    (E)ClassPathBeanDefinitionScanner
+                        CustomScanner 
+    HelloController.test()
+        @RpcReference
+            (I)BeanPostProcessor
+                SpringBeanPostProcessor.postProcessAfterInitialization()
+                    RpcServiceConfig.builder().group().version().build();
+                    (I)InvocationHandler
+                        RpcClientProxy.**getProxy**()
+                            RpcClientProxy.invoke()
+                                RpcRequest
+                                RpcResponse<>
+                                CompletableFuture<>
+                                (I)RpcRequestTransport
+                                    NettyRpcClient.sendRpcRequest()
+                                    this.NettyRpcClient()
+                                        NioEventLoopGroup
+                                        bootstrap.group(eventLoopGroup).channel().handler().option().handler(
+                                            ChannelPipeline
+                                            IdleStateHandler
+                                            (E)MessageToByteEncoder
+                                                **RpcMessageEncoder**
+                                                this.encode()
+                                                    (I)Serializer
+                                                        HessianSerializer
+                                            (E)LengthFieldBasedFrameDecoder
+                                                **RpcMessageDecoder**
+                                            (E)ChannelInboundHandlerAdapter
+                                                NettyRpcClientHandler
+                                        )
+                                    this.**sendRpcRequest**()
+                                        CompletableFuture
+                                        (I)ServiceDiscovery
+                                            ZkServiceDiscoveryImpl.lookupService()
+                                                CuratorFramework
+                                                @SPI
+                                                    **ExtensionLoader**.getExtensionLoader().getExtension()
+                                                (I)LoadBalance
+                                                    (E)AbstractLoadBalance
+                                                        ConsistentHashLoadBalance.selectServiceAddress()
+                                                            ConsistentHashLoadBalance.doSelect()
+                                                        RandomLoadBalance
+                                        this.getchannel()
+                                            channelProvider.get()
+                                            NettyRpcClient.doConnect()
+                                                Bootstrap.connect().addListener()
+                                        unprocessedRequests.put()
+                                        RpcMessage
+                                            SerializationTypeEnum.HESSIAN.getCode()
+                                            CompressTypeEnum.GZIP.getCode()
+                                            RpcConstants
+                                        channel.writeAndFlush().addListener() <---> **message**
+                                RpcClientProxy.check()
+                                    RpcException
+                                    RpcErrorMessageEnum      
+        (I)helloService.hello()
+            HelloServiceImpl.hello()
+
+NettyServerMain
+    @RpcScan
+        @RpcService
+            (I)BeanPostProcessor
+                SpringBeanPostProcessor.postProcessBeforeInitialization()
+                    serviceProvider.publishService(rpcServiceConfig)
+        HelloServiceImpl
+    NettyRpcServer
+        (I)ServiceProvider
+            ZkServiceProviderImpl
+    // Register service manually
+    helloService2
+    // Register service autoly
+    nettyRpcServer.start()
+        CustomShutdownHook.getCustomShutdownHook().clearAll()
+            CuratorUtils.clearRegistry()
+            NioEventLoopGroup
+            ServerBootstrap.group().channel().childOption().handler().childHandler(
+                ChannelPipeline
+                IdleStateHandler
+                (E)MessageToByteEncoder
+                    **RpcMessageEncoder**
+                (E)LengthFieldBasedFrameDecoder
+                    **RpcMessageDecoder**
+                (E)ChannelInboundHandlerAdapter
+                    NettyRpcServerHandler()
+            )
+            
+```
 # 疑问
 - 客户端注入接口时在包装实现类代理对象前如何实现类暂时性实例的创建？接口会创建默认实例
 - extensionLoader是什么? spi优化实现，包含了对已缓存的实现类快速调用，指定实现类的加载而非全部加载
