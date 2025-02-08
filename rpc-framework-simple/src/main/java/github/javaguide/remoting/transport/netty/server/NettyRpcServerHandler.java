@@ -1,5 +1,6 @@
 package github.javaguide.remoting.transport.netty.server;
 
+import github.javaguide.config.RpcCodeConfig;
 import github.javaguide.enums.CompressTypeEnum;
 import github.javaguide.enums.RpcResponseCodeEnum;
 import github.javaguide.enums.SerializationTypeEnum;
@@ -31,6 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 public class NettyRpcServerHandler extends ChannelInboundHandlerAdapter {
 
     private final RpcRequestHandler rpcRequestHandler;
+    private static final SerializationTypeEnum SERIALIZATION_TYPE =
+            SerializationTypeEnum.valueOf(RpcCodeConfig.getProperty("serialization.type").toUpperCase());
 
     public NettyRpcServerHandler() {
         this.rpcRequestHandler = SingletonFactory.getInstance(RpcRequestHandler.class);
@@ -43,7 +46,7 @@ public class NettyRpcServerHandler extends ChannelInboundHandlerAdapter {
                 log.info("server receive msg: [{}] ", msg);
                 byte messageType = ((RpcMessage) msg).getMessageType();
                 RpcMessage rpcMessage = new RpcMessage();
-                rpcMessage.setCodec(SerializationTypeEnum.HESSIAN.getCode());
+                rpcMessage.setCodec(SERIALIZATION_TYPE.getCode());
                 rpcMessage.setCompress(CompressTypeEnum.GZIP.getCode());
                 if (messageType == RpcConstants.HEARTBEAT_REQUEST_TYPE) {
                     rpcMessage.setMessageType(RpcConstants.HEARTBEAT_RESPONSE_TYPE);

@@ -1,6 +1,7 @@
 package github.javaguide.remoting.transport.netty.client;
 
 
+import github.javaguide.config.RpcCodeConfig;
 import github.javaguide.enums.CompressTypeEnum;
 import github.javaguide.enums.SerializationTypeEnum;
 import github.javaguide.enums.ServiceDiscoveryEnum;
@@ -29,6 +30,7 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
@@ -47,6 +49,9 @@ public final class NettyRpcClient implements RpcRequestTransport {
     private final ChannelProvider channelProvider;
     private final Bootstrap bootstrap;
     private final EventLoopGroup eventLoopGroup;
+    private static final SerializationTypeEnum SERIALIZATION_TYPE =
+            SerializationTypeEnum.valueOf(RpcCodeConfig.getProperty("serialization.type").toUpperCase());
+
 
     public NettyRpcClient() {
         // initialize resources such as EventLoopGroup, Bootstrap
@@ -72,6 +77,7 @@ public final class NettyRpcClient implements RpcRequestTransport {
         this.serviceDiscovery = ExtensionLoader.getExtensionLoader(ServiceDiscovery.class).getExtension(ServiceDiscoveryEnum.ZK.getName());
         this.unprocessedRequests = SingletonFactory.getInstance(UnprocessedRequests.class);
         this.channelProvider = SingletonFactory.getInstance(ChannelProvider.class);
+
     }
 
     /**
@@ -106,7 +112,7 @@ public final class NettyRpcClient implements RpcRequestTransport {
             // put unprocessed request
             unprocessedRequests.put(rpcRequest.getRequestId(), resultFuture);
             RpcMessage rpcMessage = RpcMessage.builder().data(rpcRequest)
-                    .codec(SerializationTypeEnum.HESSIAN.getCode())
+                    .codec(SERIALIZATION_TYPE.getCode()) //SerializationTypeEnum.HESSIAN.getCode()
                     .compress(CompressTypeEnum.GZIP.getCode())
                     .messageType(RpcConstants.REQUEST_TYPE).build();
             channel.writeAndFlush(rpcMessage).addListener((ChannelFutureListener) future -> {

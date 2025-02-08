@@ -80,7 +80,8 @@ docker pull zookeeper:3.5.8
 
 ```shell
 docker run -d --name zookeeper -p 2181:2181 zookeeper:3.5.8
-#然后跑起来example-client/server中的xxxMain文件
+#然后跑起来xxserverMain文件
+# 再跑xxclientMain文件
 ```
 
 
